@@ -1,0 +1,174 @@
+<!DOCTYPE html>
+<html lang="fa" dir="rtl">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>گوست‌سی‌پی</title>
+<style>
+body {margin:0;font-family:"Vazir",sans-serif;background:#0d0d0d;color:#fff;}
+h1,h2,h3 {color:#ffc800;}
+button {cursor:pointer;border:none;background:#ffc800;color:#000;padding:8px 14px;border-radius:6px;}
+button:hover{background:#ffe047;}
+header {background:#111;padding:1rem;text-align:center;border-bottom:2px solid #ffc800;position:relative;}
+#menuBtn,#adminMenuBtn{position:absolute;top:15px;left:15px;background:none;font-size:22px;color:#ffc800;border:none;}
+#menu,#adminMenu{display:none;position:absolute;left:10px;top:50px;background:#1a1a1a;border:1px solid #333;border-radius:8px;overflow:hidden;z-index:10;}
+#menu button,#adminMenu button{display:block;width:150px;background:none;color:#ffc800;border-bottom:1px solid #333;text-align:right;padding:10px;}
+#menu button:last-child,#adminMenu button:last-child{border:none;}
+#menu button:hover,#adminMenu button:hover{background:#333;}
+section{display:none;padding:1rem;}
+.grid{display:grid;gap:1rem;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));}
+.card{background:#1a1a1a;border:1px solid #333;border-radius:10px;padding:10px;text-align:center;}
+.card img{width:100%;border-radius:8px;}
+.eventCard img{width:80px;height:80px;border-radius:8px;display:block;margin:0 auto 10px;}
+.form{display:flex;flex-direction:column;gap:8px;max-width:400px;}
+input,textarea{background:#222;border:1px solid #444;border-radius:6px;color:#fff;padding:8px;}
+#eventsBox p{background:#222;border:1px solid #333;border-radius:8px;padding:6px;margin:5px 0;}
+</style>
+</head>
+<body>
+
+<header>
+  <h1>🔥 گوست‌سی‌پی 🔥</h1>
+  <button id="menuBtn" onclick="toggleMenu()">☰</button>
+  <div id="menu">
+    <button onclick="openCard()">شماره کارت</button>
+  </div>
+</header>
+
+<section id="home" style="display:flex;flex-direction:column;align-items:center;justify-content:center;min-height:100vh;">
+  <h2>انتخاب بخش</h2>
+  <button onclick="showSection('customer')">بخش مشتری</button>
+  <button onclick="askPassword()">پنل مدیریت</button>
+</section>
+
+<!-- بخش مشتری -->
+<section id="customer">
+  <h2>🎉 رویدادها</h2>
+  <div id="eventsBox"></div>
+  <h2>🎮 آگهی‌ها</h2>
+  <div id="productList" class="grid"></div>
+  <div style="text-align:center;margin-top:20px;">
+    <button onclick="backHome()">بازگشت</button>
+  </div>
+</section>
+
+<!-- بخش مدیریت -->
+<section id="admin">
+  <h2>⚙️ مدیریت آگهی‌ها</h2>
+  <button id="adminMenuBtn" onclick="toggleAdminMenu()">☰</button>
+  <div id="adminMenu">
+    <button onclick="openAdminChatList()">پیام‌ها</button>
+    <button onclick="openEvents()">رویدادها</button>
+  </div>
+
+  <form class="form" onsubmit="return false;">
+    <label>عکس محصول:</label><input type="file" id="image" accept="image/*">
+    <label>توضیحات:</label><textarea id="desc"></textarea>
+    <label>قیمت:</label><input type="number" id="price">
+    <button onclick="addAd()">ثبت آگهی</button>
+  </form>
+
+  <div id="adminList" class="grid"></div>
+
+  <div id="adminEvents" style="display:none;margin-top:20px;">
+    <h3>🎉 افزودن رویداد</h3>
+    <form class="form" onsubmit="return false;">
+      <label>عنوان رویداد:</label><input type="text" id="eventTitle" placeholder="مثلاً قرعه‌کشی ۵۰۰ سی‌پی">
+      <label>تاریخ پایان:</label><input type="datetime-local" id="eventEnd">
+      <label>عکس رویداد:</label><input type="file" id="eventImage" accept="image/*">
+      <button onclick="addEvent()">افزودن رویداد</button>
+    </form>
+    <div id="eventList"></div>
+  </div>
+
+  <div style="text-align:center;margin-top:20px;">
+    <button onclick="backHome()">بازگشت</button>
+  </div>
+</section>
+
+<script>
+let ads = JSON.parse(localStorage.getItem('ads')||'[]');
+let events = JSON.parse(localStorage.getItem('events')||'[]');
+function save(){localStorage.setItem('ads',JSON.stringify(ads));localStorage.setItem('events',JSON.stringify(events));}
+
+function showSection(id){
+  document.querySelectorAll('section').forEach(s=>s.style.display='none');
+  document.getElementById(id).style.display='block';
+  if(id==='customer')renderCustomer();
+  if(id==='admin')renderAdmin();
+}
+function backHome(){document.querySelectorAll('section').forEach(s=>s.style.display='none');document.getElementById('home').style.display='flex';}
+function askPassword(){let p=prompt('رمز پنل مدیریت:');if(p==='ایران و آلمان سلام سیپی')showSection('admin');else alert('رمز اشتباه');}
+function toggleMenu(){let m=document.getElementById('menu');m.style.display=m.style.display==='block'?'none':'block';}
+function toggleAdminMenu(){let m=document.getElementById('adminMenu');m.style.display=m.style.display==='block'?'none':'block';}
+
+/* آگهی‌ها */
+function renderCustomer(){
+  renderEvents();
+  let list=document.getElementById('productList');list.innerHTML='';
+  ads.forEach(a=>{let c=document.createElement('div');c.className='card';c.innerHTML=`<img src="${a.img}"><h3>${a.desc}</h3><p>${a.price} تومان</p>`;list.appendChild(c);});
+}
+function renderAdmin(){
+  let list=document.getElementById('adminList');list.innerHTML='';
+  ads.forEach((a,i)=>{let c=document.createElement('div');c.className='card';c.innerHTML=`<img src="${a.img}"><h4>${a.desc}</h4><p>${a.price} تومان</p><button onclick="delAd(${i})">حذف</button>`;list.appendChild(c);});
+  renderEventList();
+}
+function addAd(){
+  const f=document.getElementById('image').files[0];const d=document.getElementById('desc').value;const p=document.getElementById('price').value;
+  if(!f||!d||!p){alert('پر کنید');return;}
+  const r=new FileReader();r.onload=()=>{ads.push({img:r.result,desc:d,price:p});save();renderAdmin();};r.readAsDataURL(f);
+}
+function delAd(i){ads.splice(i,1);save();renderAdmin();}
+
+/* رویدادها */
+function openEvents(){
+  document.getElementById('adminEvents').style.display='block';
+  renderEventList();toggleAdminMenu();
+}
+function addEvent(){
+  let t=document.getElementById('eventTitle').value;
+  let e=document.getElementById('eventEnd').value;
+  let f=document.getElementById('eventImage').files[0];
+  if(!t||!e||!f){alert('لطفاً همه فیلدها را پر کنید');return;}
+  const r=new FileReader();
+  r.onload=()=>{
+    events.push({title:t,end:e,img:r.result});
+    save();renderEventList();
+    document.getElementById('eventTitle').value='';
+    document.getElementById('eventEnd').value='';
+    document.getElementById('eventImage').value='';
+  };
+  r.readAsDataURL(f);
+}
+function renderEventList(){
+  let box=document.getElementById('eventList');
+  if(!box)return; box.innerHTML='';
+  events.forEach((ev,i)=>{
+    let p=document.createElement('p');
+    p.innerHTML=`<img src="${ev.img}" style="width:40px;height:40px;border-radius:4px;vertical-align:middle;margin-left:8px;"> ${ev.title} - پایان: ${new Date(ev.end).toLocaleString('fa-IR')}`;
+    let b=document.createElement('button');b.textContent='❌';b.onclick=()=>{events.splice(i,1);save();renderEventList();};
+    p.appendChild(b);box.appendChild(p);
+  });
+}
+function renderEvents(){
+  let box=document.getElementById('eventsBox');
+  box.innerHTML='';
+  events.forEach(ev=>{
+    let remain=getRemain(ev.end);
+    let div=document.createElement('div');
+    div.className='eventCard';
+    div.innerHTML=`<img src="${ev.img}"><p>${ev.title}<br>⏳ ${remain}</p>`;
+    box.appendChild(div);
+  });
+}
+function getRemain(end){
+  let now=new Date(),t=new Date(end);
+  let diff=t-now;if(diff<=0)return 'پایان یافته';
+  let s=Math.floor(diff/1000),d=Math.floor(s/86400);
+  s%=86400;let h=Math.floor(s/3600);s%=3600;let m=Math.floor(s/60);s%=60;
+  return `${d} روز و ${h} ساعت و ${m} دقیقه و ${s} ثانیه`;
+}
+setInterval(()=>{if(document.getElementById('customer').style.display==='block')renderEvents();},1000);
+</script>
+</body>
+</html>
